@@ -6,6 +6,7 @@
 //  Copyright © 2015 com.hopscotch. All rights reserved.
 //
 
+
 import UIKit
 
 class ViewController: UIViewController {
@@ -30,7 +31,7 @@ class ViewController: UIViewController {
     }
 }
 
-class KeyboardViewController: UIViewController, UICollectionViewDelegateFlowLayout, UICollectionViewDataSource {
+class KeyboardViewController: UIViewController, UICollectionViewDelegateFlowLayout, UICollectionViewDataSource, UIScrollViewDelegate {
 
     
     var collectionView: UICollectionView!
@@ -42,11 +43,11 @@ class KeyboardViewController: UIViewController, UICollectionViewDelegateFlowLayo
         super.viewDidLoad()
 
         picker.addTarget(self, action: "goToSection", forControlEvents: UIControlEvents.ValueChanged)
-        
+        picker.selectedSegmentIndex = 0
         picker.backgroundColor = UIColor.whiteColor()
         self.view.addSubview(picker)
         
-        let layout: UICollectionViewFlowLayout = KeyboardCollectionViewFlowLayout()
+        let layout: UICollectionViewFlowLayout = UICollectionViewFlowLayout()
         layout.sectionInset = UIEdgeInsets(top: 10, left: 20, bottom: 20, right: 20)
         layout.itemSize = CGSize(width: 40, height: 40)
         layout.scrollDirection = .Horizontal
@@ -115,16 +116,12 @@ class KeyboardViewController: UIViewController, UICollectionViewDelegateFlowLayo
         self.picker.frame.size.width = self.view.bounds.width
     }
 
-
-}
-
-
-class KeyboardCollectionViewFlowLayout: UICollectionViewFlowLayout {
-    
-    override func collectionViewContentSize() -> CGSize {
-
-        return CGSize(width: 5000, height: 20)
-    }
+	func scrollViewDidScroll(scrollView: UIScrollView) {
+		let visibleCells = self.collectionView.visibleCells()
+		if let firstCell = visibleCells.first, indexPath = self.collectionView.indexPathForCell(firstCell) {
+			self.picker.selectedSegmentIndex = indexPath.section
+		}
+	}
 
 }
 
@@ -132,14 +129,22 @@ class KeyboardCollectionViewFlowLayout: UICollectionViewFlowLayout {
 class KeyboardCollectionViewCell: UICollectionViewCell {
     
     let label = UILabel()
+	let holdGestureRecognizer = UILongPressGestureRecognizer()
     
+	var xFromCenter = CGFloat()
+	var yFromCenter = CGFloat()
 
+	var originalPoint: CGPoint = CGPoint()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         label.font = UIFont.boldSystemFontOfSize(20)
         label.textColor = UIColor.blueColor()
         self.contentView.addSubview(label)
+
+		holdGestureRecognizer.addTarget(self, action: "wasHeld:")
+		self.addGestureRecognizer(holdGestureRecognizer)
+
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -151,6 +156,28 @@ class KeyboardCollectionViewCell: UICollectionViewCell {
         self.label.sizeToFit()
         self.label.frame.origin = self.contentView.center
     }
-    
-    
+
+	var doubledView: KeyboardCollectionViewCell?
+
+	func wasHeld(gestureRecognizer: UILongPressGestureRecognizer) {
+		let appLocation = gestureRecognizer.locationInView(self.superview)
+
+		switch (gestureRecognizer.state) {
+		case .Began:
+			self.doubledView = KeyboardCollectionViewCell()
+			self.doubledView?.frame = self.frame
+			self.doubledView?.backgroundColor = UIColor.brownColor()
+			self.superview?.addSubview(doubledView!)
+
+		case .Changed:
+			print(appLocation)
+			self.doubledView?.frame.origin = appLocation
+
+		case .Ended:
+			self.doubledView?.removeFromSuperview()
+		default:
+			break
+		}
+
+	}
 }
